@@ -6,6 +6,7 @@ and may not be redistributed without written permission.*/
 #include "SDL_filesystem.h"
 #include "SDL_init.h"
 #include "SDL_oldnames.h"
+#include "SDL_rect.h"
 #include "SDL_surface.h"
 #include "SDL_video.h"
 #include <SDL.h>
@@ -35,12 +36,21 @@ SDL_Surface *gKeyPressSurfaces[KEY_PRESS_SURFACE_TOTAL];
 SDL_Surface *gCurrentSurface = NULL;
 
 SDL_Surface *loadSurface(std::string path) {
+  SDL_Surface *optimizedSurface = NULL;
   SDL_Surface *loadedSurface = SDL_LoadBMP(path.c_str());
   if (loadedSurface == NULL) {
     printf("Unable to load image %s! SDL Error: %s\n", path.c_str(),
            SDL_GetError());
+  } else {
+    optimizedSurface =
+        SDL_ConvertSurface(loadedSurface, gScreenSurface->format);
+    if (optimizedSurface == NULL) {
+      printf("Unable to optimize image %s! SDL Error: %s\n", path.c_str(),
+             SDL_GetError());
+    }
+    SDL_DestroySurface(loadedSurface);
   }
-  return loadedSurface;
+  return optimizedSurface;
 }
 
 bool init() {
@@ -68,7 +78,7 @@ bool loadMedia() {
   bool success = true;
 
   gKeyPressSurfaces[KEY_PRESS_SURFACE_DEFAULT] =
-      loadSurface("src/resources/press.bmp");
+      loadSurface("src/resources/stretch.bmp");
   if (gKeyPressSurfaces[KEY_PRESS_SURFACE_DEFAULT] == NULL) {
     printf("Failed to load default image!\n");
     success = false;
@@ -160,7 +170,12 @@ int main(int argc, char *args[]) {
         }
       }
     }
-    SDL_BlitSurface(gCurrentSurface, NULL, gScreenSurface, NULL);
+    SDL_Rect stretchRect;
+    stretchRect.x = 0;
+    stretchRect.y = 0;
+    stretchRect.w = SCREEN_WIDTH;
+    stretchRect.h = SCREEN_HEIGHT;
+    SDL_BlitSurfaceScaled(gCurrentSurface, NULL, gScreenSurface, &stretchRect);
     SDL_UpdateWindowSurface(gWindow);
   }
 
