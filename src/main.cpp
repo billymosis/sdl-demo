@@ -12,8 +12,11 @@ and may not be redistributed without written permission.*/
 #include "SDL_init.h"
 #include "SDL_oldnames.h"
 #include "SDL_rect.h"
+#include "SDL_render.h"
 #include "SDL_surface.h"
 #include "SDL_video.h"
+#include <iostream>
+#include <ostream>
 #include <stdio.h>
 #include <string>
 
@@ -39,6 +42,10 @@ SDL_Surface *gKeyPressSurfaces[KEY_PRESS_SURFACE_TOTAL];
 
 SDL_Surface *gCurrentSurface = NULL;
 
+SDL_Renderer *gRenderer = NULL;
+
+SDL_Texture *gTexture = NULL;
+
 SDL_Surface *loadSurface(std::string path) {
   SDL_Surface *optimizedSurface = NULL;
   SDL_Surface *loadedSurface = IMG_Load(path.c_str());
@@ -57,6 +64,24 @@ SDL_Surface *loadSurface(std::string path) {
   return optimizedSurface;
 }
 
+SDL_Texture *loadTexture(std::string path) {
+  SDL_Texture *newTexture = NULL;
+  SDL_Surface *loadedSurface = IMG_Load(path.c_str());
+  if (loadedSurface == NULL) {
+    printf("Unable to load image %s! SDL Error: %s\n", path.c_str(),
+           SDL_GetError());
+  } else {
+    newTexture = SDL_CreateTextureFromSurface(gRenderer, loadedSurface);
+
+    if (newTexture == NULL) {
+      printf("Unable to create texture from %s! SDL Error: %s\n", path.c_str(),
+             SDL_GetError());
+    }
+    SDL_DestroySurface(loadedSurface);
+  }
+  return newTexture;
+}
+
 bool init() {
   bool success = true;
   if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -70,6 +95,14 @@ bool init() {
       printf("Window could not be created! SDL_Error: %s\n", SDL_GetError());
       success = false;
     } else {
+      gRenderer = SDL_CreateRenderer(gWindow, NULL, SDL_RENDERER_ACCELERATED);
+      if (gRenderer == NULL) {
+        printf("Renderer could not be created! SDL Error: %s\n",
+               SDL_GetError());
+        success = false;
+      } else {
+        SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
+      }
       int imgFlags = IMG_INIT_PNG;
       // & is bitwise and
       // https://en.wikipedia.org/wiki/Bitwise_operations_in_C#Bitwise_AND_.22.26.22
@@ -90,9 +123,8 @@ bool loadMedia() {
   // Loading success flag
   bool success = true;
 
-  gKeyPressSurfaces[KEY_PRESS_SURFACE_DEFAULT] =
-      loadSurface("src/resources/loaded.png");
-  if (gKeyPressSurfaces[KEY_PRESS_SURFACE_DEFAULT] == NULL) {
+  gTexture = loadTexture("src/resources/texture.png");
+  if (gTexture == NULL) {
     printf("Failed to load default image!\n");
     success = false;
   }
@@ -136,11 +168,17 @@ void close() {
   SDL_DestroySurface(gCurrentSurface);
   gCurrentSurface = NULL;
 
+  SDL_DestroyTexture(gTexture);
+  gTexture = NULL;
+
   // Destroy window
   SDL_DestroyWindow(gWindow);
+  SDL_DestroyRenderer(gRenderer);
   gWindow = NULL;
+  gRenderer = NULL;
 
   // Quit SDL subsystems
+  IMG_Quit();
   SDL_Quit();
 }
 
@@ -183,13 +221,9 @@ int main(int argc, char *args[]) {
         }
       }
     }
-    SDL_Rect stretchRect;
-    stretchRect.x = 0;
-    stretchRect.y = 0;
-    stretchRect.w = SCREEN_WIDTH;
-    stretchRect.h = SCREEN_HEIGHT;
-    SDL_BlitSurfaceScaled(gCurrentSurface, NULL, gScreenSurface, &stretchRect);
-    SDL_UpdateWindowSurface(gWindow);
+    SDL_RenderClear(gRenderer);
+    SDL_RenderTexture(gRenderer, gTexture, NULL, NULL);
+    SDL_RenderPresent(gRenderer);
   }
 
   close();
