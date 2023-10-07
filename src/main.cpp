@@ -2,6 +2,11 @@
 and may not be redistributed without written permission.*/
 
 // Using SDL and standard IO
+
+// It maybe good practice to make local vendor with quote and build in with
+// angle bracket
+#include "SDL3/SDL.h"
+#include "SDL3_image/SDL_image.h"
 #include "SDL_events.h"
 #include "SDL_filesystem.h"
 #include "SDL_init.h"
@@ -9,7 +14,6 @@ and may not be redistributed without written permission.*/
 #include "SDL_rect.h"
 #include "SDL_surface.h"
 #include "SDL_video.h"
-#include <SDL.h>
 #include <stdio.h>
 #include <string>
 
@@ -37,7 +41,7 @@ SDL_Surface *gCurrentSurface = NULL;
 
 SDL_Surface *loadSurface(std::string path) {
   SDL_Surface *optimizedSurface = NULL;
-  SDL_Surface *loadedSurface = SDL_LoadBMP(path.c_str());
+  SDL_Surface *loadedSurface = IMG_Load(path.c_str());
   if (loadedSurface == NULL) {
     printf("Unable to load image %s! SDL Error: %s\n", path.c_str(),
            SDL_GetError());
@@ -66,8 +70,17 @@ bool init() {
       printf("Window could not be created! SDL_Error: %s\n", SDL_GetError());
       success = false;
     } else {
-      // Get window surface
-      gScreenSurface = SDL_GetWindowSurface(gWindow);
+      int imgFlags = IMG_INIT_PNG;
+      // & is bitwise and
+      // https://en.wikipedia.org/wiki/Bitwise_operations_in_C#Bitwise_AND_.22.26.22
+      if (!(IMG_Init(imgFlags) & imgFlags)) {
+        printf("SDL_image could not initialize! SDL_image Error: %s\n",
+               IMG_GetError());
+        success = false;
+      } else {
+        // Get window surface
+        gScreenSurface = SDL_GetWindowSurface(gWindow);
+      }
     }
   }
   return success;
@@ -78,7 +91,7 @@ bool loadMedia() {
   bool success = true;
 
   gKeyPressSurfaces[KEY_PRESS_SURFACE_DEFAULT] =
-      loadSurface("src/resources/stretch.bmp");
+      loadSurface("src/resources/loaded.png");
   if (gKeyPressSurfaces[KEY_PRESS_SURFACE_DEFAULT] == NULL) {
     printf("Failed to load default image!\n");
     success = false;
