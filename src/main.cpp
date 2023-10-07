@@ -2,6 +2,7 @@
 and may not be redistributed without written permission.*/
 
 // Using SDL and standard IO
+#include "SDL_events.h"
 #include "SDL_filesystem.h"
 #include "SDL_init.h"
 #include "SDL_oldnames.h"
@@ -16,7 +17,7 @@ const int SCREEN_HEIGHT = 480;
 
 SDL_Window *gWindow = NULL;
 SDL_Surface *gScreenSurface = NULL;
-SDL_Surface *gHelloWorld = NULL;
+SDL_Surface *gXOut = NULL;
 
 bool init() {
   bool success = true;
@@ -43,9 +44,9 @@ bool loadMedia() {
   bool success = true;
 
   // Load splash image
-  gHelloWorld = SDL_LoadBMP("src/resources/hello_world.bmp");
+  gXOut = SDL_LoadBMP("src/resources/x.bmp");
   printf("%s\n", SDL_GetBasePath());
-  if (gHelloWorld == NULL) {
+  if (gXOut == NULL) {
     printf("Unable to load image %s! SDL Error: %s\n",
            "02_getting_an_image_on_the_screen/hello_world.bmp", SDL_GetError());
     success = false;
@@ -56,8 +57,8 @@ bool loadMedia() {
 
 void close() {
   // Deallocate surface
-  SDL_DestroySurface(gHelloWorld);
-  gHelloWorld = NULL;
+  SDL_DestroySurface(gXOut);
+  gXOut = NULL;
 
   // Destroy window
   SDL_DestroyWindow(gWindow);
@@ -74,16 +75,16 @@ int main(int argc, char *args[]) {
     if (!loadMedia()) {
       printf("Failed to load media\n");
     } else {
-      SDL_BlitSurface(gHelloWorld, NULL, gScreenSurface, NULL);
-    }
-    SDL_UpdateWindowSurface(gWindow);
-    // Hack to get window to stay up
-    SDL_Event e;
-    bool quit = false;
-    while (quit == false) {
-      while (SDL_PollEvent(&e)) {
-        if (e.type == SDL_EVENT_QUIT)
-          quit = true;
+      bool quit = false;
+      SDL_Event e;
+      while (!quit) {
+        while (SDL_PollEvent(&e) != 0) {
+          if (e.type == SDL_EVENT_QUIT) {
+            quit = true;
+          }
+        }
+        SDL_BlitSurface(gXOut, NULL, gScreenSurface, NULL);
+        SDL_UpdateWindowSurface(gWindow);
       }
     }
   }
