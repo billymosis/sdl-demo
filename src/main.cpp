@@ -27,24 +27,11 @@ const int SCREEN_HEIGHT = 480;
 SDL_Window *gWindow = NULL;
 SDL_Surface *gScreenSurface = NULL;
 
-enum KeyPressSurfaces {
-  KEY_PRESS_SURFACE_DEFAULT,
-  KEY_PRESS_SURFACE_UP,
-  KEY_PRESS_SURFACE_DOWN,
-  KEY_PRESS_SURFACE_LEFT,
-  KEY_PRESS_SURFACE_RIGHT,
-  KEY_PRESS_SURFACE_TOTAL
-};
-
 SDL_Surface *loadSurface(std::string path);
-
-SDL_Surface *gKeyPressSurfaces[KEY_PRESS_SURFACE_TOTAL];
 
 SDL_Surface *gCurrentSurface = NULL;
 
 SDL_Renderer *gRenderer = NULL;
-
-SDL_Texture *gTexture = NULL;
 
 SDL_Surface *loadSurface(std::string path) {
   SDL_Surface *optimizedSurface = NULL;
@@ -123,43 +110,6 @@ bool loadMedia() {
   // Loading success flag
   bool success = true;
 
-  gTexture = loadTexture("src/resources/texture.png");
-  if (gTexture == NULL) {
-    printf("Failed to load default image!\n");
-    success = false;
-  }
-
-  // Load up surface
-  gKeyPressSurfaces[KEY_PRESS_SURFACE_UP] = loadSurface("src/resources/up.bmp");
-  if (gKeyPressSurfaces[KEY_PRESS_SURFACE_UP] == NULL) {
-    printf("Failed to load up image!\n");
-    success = false;
-  }
-
-  // Load down surface
-  gKeyPressSurfaces[KEY_PRESS_SURFACE_DOWN] =
-      loadSurface("src/resources/down.bmp");
-  if (gKeyPressSurfaces[KEY_PRESS_SURFACE_DOWN] == NULL) {
-    printf("Failed to load down image!\n");
-    success = false;
-  }
-
-  // Load left surface
-  gKeyPressSurfaces[KEY_PRESS_SURFACE_LEFT] =
-      loadSurface("src/resources/left.bmp");
-  if (gKeyPressSurfaces[KEY_PRESS_SURFACE_LEFT] == NULL) {
-    printf("Failed to load left image!\n");
-    success = false;
-  }
-
-  // Load right surface
-  gKeyPressSurfaces[KEY_PRESS_SURFACE_RIGHT] =
-      loadSurface("src/resources/right.bmp");
-  if (gKeyPressSurfaces[KEY_PRESS_SURFACE_RIGHT] == NULL) {
-    printf("Failed to load right image!\n");
-    success = false;
-  }
-
   return success;
 }
 
@@ -167,9 +117,6 @@ void close() {
   // Deallocate surface
   SDL_DestroySurface(gCurrentSurface);
   gCurrentSurface = NULL;
-
-  SDL_DestroyTexture(gTexture);
-  gTexture = NULL;
 
   // Destroy window
   SDL_DestroyWindow(gWindow);
@@ -198,31 +145,39 @@ int main(int argc, char *args[]) {
   bool quit = false;
   SDL_Event e;
 
-  gCurrentSurface = gKeyPressSurfaces[KEY_PRESS_SURFACE_DEFAULT];
-
   while (!quit) {
     while (SDL_PollEvent(&e) != 0) {
       if (e.type == SDL_EVENT_QUIT) {
         quit = true;
-      } else if (e.type == SDL_EVENT_KEY_DOWN) {
-        switch (e.key.keysym.sym) {
-        case SDLK_UP:
-          gCurrentSurface = gKeyPressSurfaces[KEY_PRESS_SURFACE_UP];
-          break;
-        case SDLK_DOWN:
-          gCurrentSurface = gKeyPressSurfaces[KEY_PRESS_SURFACE_DOWN];
-          break;
-        case SDLK_LEFT:
-          gCurrentSurface = gKeyPressSurfaces[KEY_PRESS_SURFACE_LEFT];
-          break;
-        case SDLK_RIGHT:
-          gCurrentSurface = gKeyPressSurfaces[KEY_PRESS_SURFACE_RIGHT];
-          break;
-        }
       }
     }
+
+    // Clear screen
+    SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
     SDL_RenderClear(gRenderer);
-    SDL_RenderTexture(gRenderer, gTexture, NULL, NULL);
+
+    SDL_FRect fillRect = {SCREEN_WIDTH / 4.0, SCREEN_HEIGHT / 4.0,
+                          SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0};
+    SDL_SetRenderDrawColor(gRenderer, 0xFF, 0x00, 0x00, 0xFF);
+    SDL_RenderFillRect(gRenderer, &fillRect);
+
+    // Render green outlined quad
+    SDL_FRect outlineRect = {SCREEN_WIDTH / 6.0, SCREEN_HEIGHT / 6.0,
+                             SCREEN_WIDTH * 2.0 / 3, SCREEN_HEIGHT * 2.0 / 3};
+    SDL_SetRenderDrawColor(gRenderer, 0x00, 0xFF, 0x00, 0xFF);
+    SDL_RenderRect(gRenderer, &outlineRect);
+
+    // Draw blue horizontal line
+    SDL_SetRenderDrawColor(gRenderer, 0x00, 0x00, 0xFF, 0xFF);
+    SDL_RenderLine(gRenderer, 0, SCREEN_HEIGHT / 2.0, SCREEN_WIDTH,
+                   SCREEN_HEIGHT / 2.0);
+
+    // Draw vertical line of yellow dots
+    SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0x00, 0xFF);
+    for (int i = 0; i < SCREEN_HEIGHT; i += 4) {
+      SDL_RenderPoint(gRenderer, SCREEN_WIDTH / 2.0, i);
+    }
+
     SDL_RenderPresent(gRenderer);
   }
 
